@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>IF Tracker</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<section id="tab-fast" class="tab active">
+  <div class="dial">
+    <svg viewBox="0 0 220 220" id="ring" aria-hidden="true"></svg>
+    <div class="dial-center">
+      <div id="big">00:00:00</div>
+      <div id="sub">Ready to fast</div>
+    </div>
+  </div>
+  <p id="eatAt" class="eat"></p>
+
+  <div class="card">
+    <div class="chips" id="presets"></div>
+    <label class="row">Custom length (hours, 12 or more)
+      <input type="number" id="custom" min="12" step="0.5"></label>
+    <label class="row">Start at (leave blank for now)
+      <input type="datetime-local" id="startAt"></label>
+    <button id="main" class="btn">Start my fast</button>
+  </div>
+
+  <div class="card">
+    <h3>How do you feel right now?</h3>
+    <div class="energy" id="energyBtns"></div>
+    <p class="small" id="energyNote">Start a fast to log your energy (1 = drained, 5 = great).</p>
+  </div>
+
+  <div class="card">
+    <h3>What your body is doing</h3>
+    <ul id="phases"></ul>
+    <p class="small">A general guide only. Timings vary between people. Check with a doctor before doing longer fasts regularly.</p>
+  </div>
+</section>
+
+<section id="tab-log" class="tab">
+  <div class="card">
+    <h3>Daily log</h3>
+    <label class="row">Date <input type="date" id="logDate"></label>
+    <label class="row">Weight (kg) <input type="number" id="weight" step="0.1" min="0"></label>
+    <label class="row">Sleep (hours) <input type="number" id="sleep" step="0.25" min="0" max="24"></label>
+    <label class="row">Sleep quality
+      <select id="quality"><option value="">-</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+    <button id="saveLog" class="btn">Save log</button>
+    <p class="small" id="logMsg"></p>
+  </div>
+</section>
+
+<section id="tab-history" class="tab">
+  <div class="card">
+    <div class="chips" id="showChips"></div>
+    <div class="chips" id="rangeChips"></div>
+    <canvas id="c1" height="240"></canvas>
+  </div>
+  <div class="card">
+    <h3>Energy by hour of fast</h3>
+    <canvas id="c2" height="200"></canvas>
+    <p class="small" id="hardest">Log energy check-ins during a fast to see your hardest hour.</p>
+  </div>
+  <div class="card">
+    <h3>Fasts</h3>
+    <div class="stats" id="stats"></div>
+    <ul id="past"></ul>
+  </div>
+  <div class="card">
+    <h3>Backup</h3>
+    <div class="chips">
+      <button class="chip" id="expJson">Export JSON</button>
+      <button class="chip" id="expCsv">Export CSV</button>
+      <button class="chip" id="impBtn">Import JSON</button>
+    </div>
+    <input type="file" id="impFile" accept=".json" hidden>
+  </div>
+</section>
+
+<footer><button class="chip" id="theme">Switch theme</button></footer>
+</main>
+
+<nav>
+  <button data-tab="fast" class="on">Fast</button>
+  <button data-tab="log">Log</button>
+  <button data-tab="history">History</button>
+</nav>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
