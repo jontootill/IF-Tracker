@@ -33,7 +33,9 @@ ul{list-style:none;margin:0;padding:0}
 #phases li.now{opacity:1;font-weight:700}
 #phases i{flex:0 0 12px;height:12px;border-radius:50%;margin-top:6px}
 #phases span{display:block;color:var(--muted);font-weight:400;font-size:.85rem}
-#past li{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line);font-size:.92rem}
+#past li{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:.92rem}
+#past .res{flex:1;text-align:right;color:var(--muted)}
+.del{border:2px solid var(--line);background:transparent;color:var(--danger);border-radius:999px;padding:4px 12px;font:inherit;font-size:.8rem;font-weight:700;cursor:pointer}
 .stats{display:flex;gap:12px;margin-bottom:8px}
 .stats div{flex:1;background:var(--bg);border-radius:14px;padding:10px;font-size:.8rem;color:var(--muted)}
 .stats b{display:block;font-size:1.4rem;color:var(--text)}

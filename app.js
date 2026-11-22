@@ -2,7 +2,7 @@ const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const KEY = 'fastTracker';
 const S = Object.assign(
-  { fast: null, past: [], logs: {}, energy: [], theme: null, hours: 16, range: 30, show: { s: true, w: true, e: true } },
+  { fast: null, past: [], logs: {}, energy: [], hunger: [], hours: 16, range: 30, show: { s: true, w: true, e: true } },
   JSON.parse(localStorage.getItem(KEY) || '{}')
 );
 const save = () => localStorage.setItem(KEY, JSON.stringify(S));
@@ -54,7 +54,7 @@ function tick() {
 
 // ---------- Fast controls ----------
 function renderPresets() {
-  $('#presets').innerHTML = [12, 14, 16, 18, 20, 24].map(h => `<button class="chip ${S.hours === h ? 'on' : ''}" data-h="${h}">${h}h</button>`).join('');
+  $('#presets').innerHTML = [12, 15, 16, 17, 18, 19].map(h => `<button class="chip ${S.hours === h ? 'on' : ''}" data-h="${h}">${h}h</button>`).join('');
   $('#custom').value = S.hours;
   $$('#presets .chip').forEach(b => b.onclick = () => setHours(+b.dataset.h));
 }
@@ -77,7 +77,7 @@ $('#main').onclick = () => {
     S.past.push({ start: S.fast.start, end: Date.now(), hours: S.fast.hours, done });
     S.fast = null;
   }
-  save(); tick(); energyNote();
+  save(); tick(); energyNote(); hungerNote();
 };
 
 // ---------- Energy check-ins ----------
@@ -89,6 +89,17 @@ $$('#energyBtns button').forEach(b => b.onclick = () => {
   if (!S.fast || elapsed() < 0) return energyNote('Start a fast first, then log your energy.');
   S.energy.push({ t: Date.now(), h: elapsed(), l: +b.dataset.l, fs: S.fast.start });
   save(); energyNote(`Logged ${b.dataset.l}/5 at hour ${elapsed().toFixed(1)}`);
+});
+
+// ---------- Hunger check-ins ----------
+$('#hungerBtns').innerHTML = [1, 2, 3, 4, 5].map(n => `<button data-l="${n}">${n}</button>`).join('');
+function hungerNote(msg) {
+  $('#hungerNote').textContent = msg || (S.fast ? 'Tap a number to log your hunger at this point in the fast.' : 'Start a fast to log your hunger (1 = not hungry, 5 = starving).');
+}
+$$('#hungerBtns button').forEach(b => b.onclick = () => {
+  if (!S.fast || elapsed() < 0) return hungerNote('Start a fast first, then log your hunger.');
+  S.hunger.push({ t: Date.now(), h: elapsed(), l: +b.dataset.l, fs: S.fast.start });
+  save(); hungerNote(`Logged ${b.dataset.l}/5 at hour ${elapsed().toFixed(1)}`);
 });
 
 // ---------- Daily log ----------
@@ -114,6 +125,7 @@ function hist() {
   for (let i = S.range - 1; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); days.push(dk(d)); }
   const en = {};
   S.energy.forEach(e => (en[dk(new Date(e.t))] = en[dk(new Date(e.t))] || []).push(e.l));
+  S.hunger.forEach(e => r.push(`hunger,${new Date(e.t).toISOString()},${e.l},${e.h.toFixed(2)},`));
   const g = f => days.map(d => S.logs[d]?.[f] ?? null);
   const ds = [];
   if (S.show.s) ds.push({ type: 'bar', label: 'Sleep (h)', data: g('sleep'), backgroundColor: '#38bdf899', yAxisID: 'y1' });
@@ -182,5 +194,5 @@ function theme(t) { S.theme = t; document.documentElement.dataset.theme = t; $('
 $('#theme').onclick = () => { theme(S.theme === 'dark' ? 'light' : 'dark'); if ($('#tab-history').classList.contains('active')) hist(); };
 theme(S.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
 
-renderPresets(); loadLog(); energyNote(); tick();
+renderPresets(); loadLog(); energyNote(); hungerNote(); tick();
 setInterval(tick, 1000);
