@@ -2,9 +2,10 @@ const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const KEY = 'fastTracker';
 const S = Object.assign(
-  { fast: null, past: [], logs: {}, energy: [], hunger: [], hours: 16, range: 30, show: { s: true, w: true, e: true } },
+  { fast: null, past: [], logs: {}, energy: [], hunger: [], hours: 16, range: 30, show: { s: true, w: true, e: true, h: true } },
   JSON.parse(localStorage.getItem(KEY) || '{}')
 );
+if (S.show.h === undefined) S.show.h = true; // older saved data has no hunger toggle
 const save = () => localStorage.setItem(KEY, JSON.stringify(S));
 const dk = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const H = 36e5;
@@ -118,35 +119,47 @@ $('#saveLog').onclick = () => {
 // ---------- History ----------
 let ch1, ch2;
 const avg = a => a.reduce((x, y) => x + y, 0) / a.length;
+const daily = arr => { const o = {}; arr.forEach(e => { const k = dk(new Date(e.t)); (o[k] = o[k] || []).push(e.l); }); return o; };
+const byHour = arr => { const o = {}; arr.forEach(e => { const k = Math.floor(e.h); (o[k] = o[k] || []).push(e.l); }); return o; };
+
 function hist() {
+  if (typeof Chart === 'undefined') { $('#hardest').textContent = 'Charts could not load. Check your internet connection and refresh.'; return; }
   Chart.defaults.color = getComputedStyle(document.body).getPropertyValue('--muted');
   Chart.defaults.borderColor = getComputedStyle(document.body).getPropertyValue('--line');
   const days = [];
   for (let i = S.range - 1; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); days.push(dk(d)); }
-  const en = {};
-  S.energy.forEach(e => (en[dk(new Date(e.t))] = en[dk(new Date(e.t))] || []).push(e.l));
+  const hu = daily(S.hunger);
   const g = f => days.map(d => S.logs[d]?.[f] ?? null);
+  const dayAvg = o => days.map(d => (o[d] ? +avg(o[d]).toFixed(1) : null));
   const ds = [];
   if (S.show.s) ds.push({ type: 'bar', label: 'Sleep (h)', data: g('sleep'), backgroundColor: '#38bdf899', yAxisID: 'y1' });
   if (S.show.w) ds.push({ type: 'line', label: 'Weight (kg)', data: g('weight'), borderColor: '#35d07f', backgroundColor: '#35d07f', yAxisID: 'y', spanGaps: true, tension: 0.3 });
-  if (S.show.e) ds.push({ type: 'line', label: 'Energy (1-5)', data: days.map(d => (en[d] ? +avg(en[d]).toFixed(1) : null)), borderColor: '#fb923c', backgroundColor: '#fb923c', yAxisID: 'y2', spanGaps: true, tension: 0.3 });
+  if (S.show.h) ds.push({ type: 'line', label: 'Hunger (1-5)', data: dayAvg(hu), borderColor: '#f472b6', backgroundColor: '#f472b6', yAxisID: 'y2', spanGaps: true, tension: 0.3 });
   ch1 && ch1.destroy();
   ch1 = new Chart($('#c1'), {
     data: { labels: days.map(d => d.slice(5)), datasets: ds },
     options: { scales: { y: { display: S.show.w, position: 'left' }, y1: { display: S.show.s, position: 'right', min: 0, max: 12, grid: { drawOnChartArea: false } }, y2: { display: false, min: 0, max: 5 } } }
   });
 
-  const by = {};
-  S.energy.forEach(e => { const k = Math.floor(e.h); (by[k] = by[k] || []).push(e.l); });
-  const ks = Object.keys(by).map(Number).sort((a, b) => a - b), vals = ks.map(k => avg(by[k]));
-  const low = vals.length ? vals.indexOf(Math.min(...vals)) : -1;
+  const be = byHour(S.energy), bh = byHour(S.hunger);
+  const ks = [...new Set([...Object.keys(be), ...Object.keys(bh)].map(Number))].sort((a, b) => a - b);
+  const hv = o => ks.map(k => (o[k] ? +avg(o[k]).toFixed(2) : null));
+  const ev = hv(be), hg = hv(bh);
+  const sets = [
+    { type: 'bar', label: 'Energy', data: ev, backgroundColor: '#2dd4bf99' },
+    { type: 'line', label: 'Hunger', data: hg, borderColor: '#f472b6', backgroundColor: '#f472b6', spanGaps: true, tension: 0.3 }
+  ];
   ch2 && ch2.destroy();
   ch2 = new Chart($('#c2'), {
     type: 'bar',
-    data: { labels: ks.map(k => 'h' + k), datasets: [{ label: 'Average energy', data: vals.map(v => +v.toFixed(2)), backgroundColor: vals.map((_, i) => (i === low ? '#fb923c' : '#2dd4bf99')) }] },
-    options: { plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 5 } } }
+    data: { labels: ks.map(k => 'h' + k), datasets: sets },
+    options: { scales: { y: { min: 0, max: 5 } } }
   });
-  if (low >= 0) $('#hardest').textContent = `Hardest point so far: hour ${ks[low]} (average energy ${vals[low].toFixed(1)}/5).`;
+  const pick = (v, fn) => { const x = v.filter(n => n !== null); return x.length ? v.indexOf(fn(...x)) : -1; };
+  const lo = pick(ev, Math.min), hi = pick(hg, Math.max), parts = [];
+  if (lo >= 0) parts.push(`Lowest energy: hour ${ks[lo]} (${ev[lo]}/5).`);
+  if (hi >= 0) parts.push(`Hunger peaks: hour ${ks[hi]} (${hg[hi]}/5).`);
+  $('#hardest').textContent = parts.join(' ') || 'Log energy and hunger check-ins during a fast to see your hardest hour.';
 
   const done = S.past.filter(p => p.done);
   let streak = 0;
@@ -161,7 +174,7 @@ function hist() {
     save(); hist();
   });
 }
-$('#showChips').innerHTML = [['s', 'Sleep'], ['w', 'Weight'], ['e', 'Energy']].map(([k, n]) => `<button class="chip ${S.show[k] ? 'on' : ''}" data-k="${k}">${n}</button>`).join('');
+$('#showChips').innerHTML = [['s', 'Sleep'], ['w', 'Weight'], ['h', 'Hunger']].map(([k, n]) => `<button class="chip ${S.show[k] ? 'on' : ''}" data-k="${k}">${n}</button>`).join('');
 $$('#showChips .chip').forEach(b => b.onclick = () => { S.show[b.dataset.k] = !S.show[b.dataset.k]; b.classList.toggle('on'); save(); hist(); });
 $('#rangeChips').innerHTML = [7, 30, 90].map(n => `<button class="chip ${S.range === n ? 'on' : ''}" data-n="${n}">${n} days</button>`).join('');
 $$('#rangeChips .chip').forEach(b => b.onclick = () => { S.range = +b.dataset.n; $$('#rangeChips .chip').forEach(x => x.classList.toggle('on', x === b)); save(); hist(); });
