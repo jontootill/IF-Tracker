@@ -125,7 +125,6 @@ function hist() {
   for (let i = S.range - 1; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); days.push(dk(d)); }
   const en = {};
   S.energy.forEach(e => (en[dk(new Date(e.t))] = en[dk(new Date(e.t))] || []).push(e.l));
-  S.hunger.forEach(e => r.push(`hunger,${new Date(e.t).toISOString()},${e.l},${e.h.toFixed(2)},`));
   const g = f => days.map(d => S.logs[d]?.[f] ?? null);
   const ds = [];
   if (S.show.s) ds.push({ type: 'bar', label: 'Sleep (h)', data: g('sleep'), backgroundColor: '#38bdf899', yAxisID: 'y1' });
@@ -175,6 +174,7 @@ $('#expCsv').onclick = () => {
   S.past.forEach(p => r.push(`fast,${new Date(p.start).toISOString()},${new Date(p.end).toISOString()},${p.hours},${p.done}`));
   Object.entries(S.logs).forEach(([d, l]) => r.push(`log,${d},${l.weight ?? ''},${l.sleep ?? ''},${l.quality ?? ''}`));
   S.energy.forEach(e => r.push(`energy,${new Date(e.t).toISOString()},${e.l},${e.h.toFixed(2)},`));
+  S.hunger.forEach(e => r.push(`hunger,${new Date(e.t).toISOString()},${e.l},${e.h.toFixed(2)},`));
   dl('fasting-data.csv', r.join('\n'), 'text/csv');
 };
 $('#impBtn').onclick = () => $('#impFile').click();
